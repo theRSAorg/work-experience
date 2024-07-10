@@ -1,0 +1,344 @@
+---
+title: "Access to green space"
+format: 
+  html:
+    embed-resources: true
+editor: visual
+execute: 
+  warning: false
+---
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(leaflet)
+library(forcats)
+```
+
+```{r}
+rm(list = ls())
+```
+
+```{r}
+# custom function for plotting leaflet
+source("../R/plot_map.R")
+```
+
+# The data
+
+```{r}
+
+data <- readr::read_csv("../data/greenspace_data.csv") %>%
+  rename(
+    lad20nm = ladnm,
+    lad20cd = ladcd
+  )
+
+```
+
+```{r}
+View(data)
+```
+
+Looking at the data, each row is a different Lower layer Super Output Area (LSOA). Looking at the columns we have few variables. The most important to note are:
+
+-   lsoa11nm/cd: This is the name/code of the Lower Layer Super Output Area
+
+-   lad20nm/cd: This is the name/code of the Local Authority District (in London, these are also called 'Boroughs')
+
+-   rgn11nm: This is the name of the Region
+
+-   average_distance: This is the average distance to greenspace in each LSOA
+
+Because we're interested in London, let's subset to London
+
+```{r}
+london_data <- data %>%
+  filter(rgn11nm == "London")
+
+View(london_data)
+```
+
+Now we have a new data set which contains just the London LSOAs.
+
+We might be interested to see what the average distance to green space is for a particular London borough. As an example, let's talk about the borough we're in, which is Westminster.
+
+```{r}
+london_data %>%
+  filter(lad20nm == "Westminster") %>%
+  summarise(
+    average_distance = mean(average_distance)
+  ) %>% 
+  pull()
+
+```
+
+Can you find the average distance for all LSOAs in a different LAD? Here are the LADs
+
+```{r}
+london_data %>%
+  distinct(lad20nm) %>%
+  pull()
+```
+
+::: callout-note
+Try it below with a LAD (or several) of your choice!
+:::
+
+```{r}
+london_data %>%
+  filter(lad20nm == "Westminster") %>%
+  summarise(
+    average_distance = mean(average_distance)
+  ) %>% 
+  pull()
+
+```
+
+It would be long to do this individually for all LADs. We can do some neat coding to calculate the average for each LAD
+
+```{r}
+london_data %>%
+  group_by(lad20nm) %>%
+  summarise(
+    average_distance = mean(average_distance)
+  )
+```
+
+We can arrange the result so that the LADs with the shortest average distance appear at the top. You do this using the `arrange()` function, with the variable you want to arrange by placed in the parentheses. Give it a try (Note that first you'll need to use the pipe operator `%>%` to pipe the results of the previous function to the next operation.)
+
+# Plots
+
+If we want to plot this first we need to allocate the above to an object. You do this putting the name you want to give the object on the left followed by `<-` which means "is", followed by the operations to produce the table. So, in effect, all we do is copy the above code and put something like `lad_summary <-` in front of it.
+
+```{r lad-summary}
+
+```
+
+There is a trick we can do to make plotting look nicer. Try adding the lines below to your code above (remember to pipe `%>%` from the last line of your code above)
+
+``` R
+  ungroup() %>%
+  mutate(
+    lad20nm = forcats::fct_reorder(lad20nm, desc(average_distance))
+  ) %>%
+  arrange(average_distance)
+```
+
+You'll see we now have something called `lad_summary` on the right. Now we can use this to plot.
+
+## Bar chart
+
+To plot, we use `ggplot()`. The basic format to plot a bar chart would be:
+
+``` R
+ggplot(data, aes(x, y)) + 
+geom_col()
+```
+
+Using this format, have a go at plotting the percentage for each local authority
+
+```{r bar-plot}
+
+```
+
+ggplot works by adding layers. You'll see above we've already done this by adding `geom_col()` on a new line. There a few other things we can do to make the plot looks nicer.
+
+1.  Rename the axis labels.
+    1.  To do this, use `xlab("name of your choice")` and `ylab"name of your choice")`
+2.  Give the plot a title
+    1.  To do this, use `ggtitle("name of your choice")`
+3.  Change the 'theme'.
+    1.  To this, you could try `theme_minimal()`
+
+Try adding these components to the plot.
+
+::: callout-note
+How does this way of looking at the data compare to just looking at the table?
+:::
+
+## Maps
+
+Another cool way we can visualise data is using maps.
+
+First we get the geospatial data. This details the boundaries of each LAD.
+
+```{r}
+# load london geometry
+lon_coords <- sf::read_sf("../data/london_coords.shp")
+```
+
+We then merge the coordinate data with the summary data we've calculated for each local authority.
+
+```{r}
+lad_summary_coords <- lad_summary %>%
+    merge(., lon_coords[,c('lad20cd', 'geometry')], by.x = "lad20cd", by.y = "lad20cd") %>%
+  st_as_sf(.) %>%
+  st_transform(., crs = '+proj=longlat +datum=WGS84') 
+```
+
+We can then use a custom function to plot the data. The function is called `plot_map` and you need to specify the data and the variable that you want to plot
+
+::: callout-note
+What is the data? And what is the variable? Have a go at plotting it below.
+:::
+
+```{r}
+plot_map(lad_summary_coords, "average_distance")
+```
+
+::: callout-note
+What are your takeaways from this? Does it build more of a picture than the plot or table alone?
+:::
+
+# Task
+
+## Setting the scene
+
+We now have an idea of how London boroughs perform in terms of how accessible their green space is. However, a problem with just using the average distance is that it might not capture the variation within a borough.
+
+In Tower Hamlets for example there might be some areas with good access to green space and some areas with bad access, but the average cancels that out. Let's take a quick look at Tower Hamlets as an example
+
+```{r}
+london_data %>%
+  filter(lad20nm == "Tower Hamlets") %>%
+  ggplot(., aes(average_distance)) +
+  geom_histogram() 
+```
+
+Here we can see that actually there are many areas in Tower Hamlets with good access to green space, and few areas with quite bad access. So the average distance to green space doesn't tell the whole story.
+
+::: callout-note
+So, what would be an alternative? Have a think about it...
+:::
+
+Instead of calculating the average distance to green space, we could instead **count the number of LSOAs within a LAD that have good access**. This is also makes sense because the level of LSOA is more relevant to where people live than the the level of LAD.
+
+Your task now is to produce a plot and a map, as we have above, but now exploring the **number of LSOAs within each LAD that are a "good" distance away.**
+
+::: callout-note
+First we need to define what is a **good** distance. Have a think about it and decide. What makes sense? How might we decide?
+:::
+
+When you're happy with a good distance, create a variable to record it below. Call it 'good_distance'.
+
+```{r good-distance}
+good_distance <- 400
+```
+
+Now that we've decided, for each LAD we need to count how many LSOAs have an average distance that is below the good distance threshold.
+
+We can do this by creating a new variable in `london_data` called `hit`. For each row in the data, we work out whether the value of average_distance is less than good_distance. If it is, we set `hit` equal to 1. If it isn't, we set `hit` equal to 0.
+
+We'll achieve this using a `for` loop. A `for` loop iterates across a range of values, each time performing a function.
+
+To illustrate the for loop, take a look at this:\
+
+```{r}
+for(i in 1:10){
+  print(i)
+}
+```
+
+Here we have iterated from 1 to 10, each time printing the number. In our case, we want to iterate through every row in `london_data.`We can use the function `nrow` to iterate through all the rows in `london_data`. We won't actually do this now because there are 4835 rows! But the point is that we have a way of peforming a function on every row of the data in turn.
+
+Take a look at the code below. Can you tell what's happening?
+
+```{r}
+for(i in 1:nrow(london_data)){
+  if(london_data[i, "average_distance"] < good_distance){
+    london_data[i, "hit"] <- 1
+  }
+  else{
+    london_data[i, "hit"] <- 0
+  }
+}
+```
+
+```{r}
+View(london_data)
+```
+
+When we look at `london_data` now, we can see we have a new column called `hit`.
+
+::: callout-note
+Has our `for` loop done what we wanted?
+:::
+
+```{r}
+london_data %>% 
+  group_by(lad20nm, lad20cd) %>%
+  summarise(
+    count = sum(hit)
+  ) %>%
+  arrange(desc(count))
+
+```
+
+Note that above we add `desc()` to `arrange`. This is because we want to see the best areas first. In this case the best areas have a higher value of count, because these areas have more LSOAs with good distances to green space.
+
+::: callout-note
+What is the problem with just using a count of LSOAs?
+
+What is a solution to this? How can we express the count data in a different way so that we can compare LADs?
+:::
+
+```{r}
+lad_summary <- london_data %>% 
+  group_by(lad20nm, lad20cd) %>%
+  summarise(
+    count = sum(hit),
+    total = n()
+  ) %>%
+  mutate(
+    percentage = 100 * (count / total)
+  ) %>%
+  arrange(desc(percentage))
+```
+
+Here we can see that City of London scores very well on this metric.
+
+::: callout-note
+Have a think about how you'd interpret this (clue: what does the total number of LSOAs suggest?)
+:::
+
+::: callout-note
+By extension of the above, what else might be relevant to how well LADs score according to our metric? What do you think about this ranking? Does it feel like it makes sense?
+:::
+
+## Plot
+
+Your task now is to explore this new metric in whatever way you want. As a start, you might want to try plotting the same things we've done above but for the `percentage` variable instead of `average_distance`.
+
+The data you'll want to use as a starting point is `lad_summary`
+
+### Bar chart
+
+**Tip:** To plot, we use `ggplot()`. The basic format to plot a bar chart would be:
+
+``` R
+ggplot(data, aes(x, y)) 
++ geom_col()
+```
+
+::: callout-note
+Remember also the other things you can add to the plot to tidy it up
+:::
+
+```{r bar-chart-2}
+
+```
+
+### Map
+
+**Tip:** To plot a map, use the function `plot_map`
+
+``` R
+plot_map(data, "variable")
+```
+
+```{r map-2}
+
+```
