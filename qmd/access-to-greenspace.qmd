@@ -30,7 +30,7 @@ source("../R/plot_map.R")
 
 ```{r}
 
-data <- readr::read_csv("../data/greenspace_data.csv") %>%
+data <- read_csv("../data/greenspace_data.csv") %>%
   rename(
     lad20nm = ladnm,
     lad20cd = ladcd
@@ -69,7 +69,7 @@ We might be interested to see what the average distance to green space is for a 
 london_data %>%
   filter(lad20nm == "Westminster") %>%
   summarise(
-    average_distance = mean(average_distance)
+    # add something here!
   ) %>% 
   pull()
 
@@ -101,7 +101,7 @@ It would be long to do this individually for all LADs. We can do some neat codin
 
 ```{r}
 london_data %>%
-  group_by(lad20nm) %>%
+  group_by(lad20nm, lad20cd) %>%
   summarise(
     average_distance = mean(average_distance)
   )
@@ -119,7 +119,7 @@ If we want to plot this first we need to allocate the above to an object. You do
 
 There is a trick we can do to make plotting look nicer. Try adding the lines below to your code above (remember to pipe `%>%` from the last line of your code above)
 
-``` R
+``` r
   ungroup() %>%
   mutate(
     lad20nm = forcats::fct_reorder(lad20nm, desc(average_distance))
@@ -133,7 +133,7 @@ You'll see we now have something called `lad_summary` on the right. Now we can u
 
 To plot, we use `ggplot()`. The basic format to plot a bar chart would be:
 
-``` R
+``` r
 ggplot(data, aes(x, y)) + 
 geom_col()
 ```
@@ -142,12 +142,14 @@ Using this format, have a go at plotting the percentage for each local authority
 
 ```{r bar-plot}
 
+ggplot()
+
 ```
 
 ggplot works by adding layers. You'll see above we've already done this by adding `geom_col()` on a new line. There a few other things we can do to make the plot looks nicer.
 
 1.  Rename the axis labels.
-    1.  To do this, use `xlab("name of your choice")` and `ylab"name of your choice")`
+    1.  To do this, use `xlab("name of your choice")` and `ylab("name of your choice")`
 2.  Give the plot a title
     1.  To do this, use `ggtitle("name of your choice")`
 3.  Change the 'theme'.
@@ -318,7 +320,7 @@ The data you'll want to use as a starting point is `lad_summary`
 
 **Tip:** To plot, we use `ggplot()`. The basic format to plot a bar chart would be:
 
-``` R
+``` r
 ggplot(data, aes(x, y)) 
 + geom_col()
 ```
@@ -335,7 +337,7 @@ Remember also the other things you can add to the plot to tidy it up
 
 **Tip:** To plot a map, use the function `plot_map`
 
-``` R
+``` r
 plot_map(data, "variable")
 ```
 
