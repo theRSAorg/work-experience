@@ -1,0 +1,171 @@
+---
+title: "Intro to R"
+format: html
+editor: visual
+---
+
+```{r}
+rm(list=ls())
+```
+
+```{r}
+library(dplyr)
+```
+
+
+# Demonstration
+
+R works in some ways like a calculator.
+
+```{r}
+5 + 5
+```
+
+But you can also assign values to variables. The <- symbol basically means 'is'. It assigns a name to a value.
+
+```{r}
+a <- 5 
+
+b <- 5
+
+a + b
+```
+
+This is useful for doing operations with your data. For example, you might want calculate profit from income and expenses.
+
+Below, create a profit variable called 'income' with a value of 12345 and an expenses variable called 'expenses' with a value of 2000. Then, work out your profit.
+
+:::callout-note:::
+Clue: Use the assignment symbol (<-) to create variables.
+:::
+
+```{r}
+
+```
+
+This basic structure means we can do more complicated things, including using functions. A function is like an instruction that is performed on data. For example, mean() is a function. It takes as its argument a set of numbers and returns the average. Below, we create a variable called 'numbers' that contains the numbers 1-10. Then, we pass that variable to the mean function, which calculates the mean.
+
+```{r}
+numbers <- c(1,2,3,4,5,6,7,8,9,10)
+
+mean(numbers)
+```
+You can also assign the result of a function to a variable. This will create a new variable in your workspace.
+
+```{r}
+average <- mean(numbers)
+```
+
+Let's say we have a data frame that contains income for 5 people between 2019 and 2023. 
+
+```{r}
+set.seed(423)
+
+df <- data.frame(
+  "Year" = rep(2019:2023,each= 5),
+  "Person" = rep(c("A","B","C","D","E"),5),
+  "Income" = runif(25, min = 20000, max = 40000)
+)
+```
+
+We can look at the df by simply typing 'df' and running it. 
+
+```{r}
+df
+```
+
+We can select a single variable using the '$' symbol, which you could think of as meaning 'select'. It works by putting '$' and the name of the variable after the name of the df:
+
+```{r}
+df$Income
+```
+
+We can use a function on a set of numbers in a data frame in the same way as be did before. Below, calculate the mean of income
+
+```{r}
+
+```
+
+What does this average mean? Are there any other ways we can explore this data? 
+
+:::callout-note:::
+Tip: What kind of question we might be interested in answering?
+:::
+
+To explore subsets of data, we can apply a filter to our dataframe and explore only part of it. To do this we can use the 'filter' function. This works by asking for only certain values of a variable.
+
+The first argument for filter is the dataframe you want to subset. The second argument is the variable you want to use to subset, followed by a the value of the variable. For example, below we create a new data frame called 'subset_df' which includes only data from 2023. 
+
+```{r}
+subset_df <- filter(df, Year == 2023)
+```
+
+There is a clearer way of doing this, calling 'piping'. The pipe operator looks like this: %>%. It basically means 'and then'. We use it to do sequences of operations, one after another.
+
+Below, we produce exactly the same thing as above but using piping instead. We'll name is subset_df_2 so that you can compare the two methods.
+
+```{r}
+subset_df_2 <- df %>%
+  filter(Year == 2023)
+```
+
+The code above can be read as follows:
+
+1. Create a new object called subset_df_2 by taking df **and then**
+2. Filter to just the rows where 'Year' is equal to 2023
+
+:::callout-note:::
+Compare the two methods by clicking on subset_df and subset_df_2. Are they the same?
+:::
+
+Below, have a go at filtering df in a different way
+
+```{r}
+
+```
+
+We can then add another step to our pipe on our subset. Below, we subset to just 2023, then calculate the mean. Note that we also use a new function called 'summarise', which basically just tells R that we're now doing a calculation on the data. Note also this time we don't attribute the result to an object.
+
+```{r}
+df %>%
+  filter(Year == 2023) %>%
+  summarise(
+    mean(Income)
+  )
+```
+Try calculating the mean of another year below:
+
+```{r}
+
+```
+
+It would be long to do this for each and every year. Fortunately we can do this quickly using another function called 'group_by'. This tells R how to group the data when performing a function.
+
+Take a look at what the code outputs below. What has it done?
+
+```{r}
+income_summary <- df %>%
+  group_by(Year) %>%
+  summarise(
+    average_income = mean(Income)
+  )
+```
+
+In words, the code above does this:
+
+1. Create a new object called income_summary by taking df **and then**
+2. Group by Year **and then**
+3. Calculate the average income
+
+This produces the average income each year across people.
+
+What if I was interested in seeing what the average income for each person is across years? How would you do it? Have a go below
+
+:::callout-note
+Tip: It can be achieved by altering the code above.
+:::
+
+```{r}
+
+```
+
